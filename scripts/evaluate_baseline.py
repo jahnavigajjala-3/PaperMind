@@ -40,9 +40,10 @@ TESTS = [
             {
                 "role": "user",
                 "content": (
-                    f"Based only on this excerpt, identify the paper's "
-                    f"main contribution and distinguish it from its "
-                    f"reported results.\n\n{PAPER_EXCERPT}"
+                    "Based only on this excerpt, identify the paper's "
+                    "main contribution and distinguish it from its "
+                    "reported results.\n\n"
+                    f"{PAPER_EXCERPT}"
                 ),
             }
         ],
@@ -53,9 +54,10 @@ TESTS = [
             {
                 "role": "user",
                 "content": (
-                    f"Explain the evaluation methodology described in "
-                    f"this excerpt. State what is known and what is "
-                    f"not specified.\n\n{PAPER_EXCERPT}"
+                    "Explain the evaluation methodology described in "
+                    "this excerpt. State what is known and what is "
+                    "not specified.\n\n"
+                    f"{PAPER_EXCERPT}"
                 ),
             }
         ],
@@ -66,9 +68,10 @@ TESTS = [
             {
                 "role": "user",
                 "content": (
-                    f"Interpret the reported latency and accuracy "
-                    f"results. What trade-off do they suggest? Do not "
-                    f"claim statistical significance.\n\n{PAPER_EXCERPT}"
+                    "Interpret the reported latency and accuracy "
+                    "results. What trade-off do they suggest? Do not "
+                    "claim statistical significance.\n\n"
+                    f"{PAPER_EXCERPT}"
                 ),
             }
         ],
@@ -79,10 +82,10 @@ TESTS = [
             {
                 "role": "user",
                 "content": (
-                    f"Identify three limitations supported by this "
-                    f"excerpt. Separate explicit limitations from "
-                    f"reasonable concerns, and do not invent facts."
-                    f"\n\n{PAPER_EXCERPT}"
+                    "Identify three limitations supported by this "
+                    "excerpt. Separate explicit limitations from "
+                    "reasonable concerns, and do not invent facts.\n\n"
+                    f"{PAPER_EXCERPT}"
                 ),
             }
         ],
@@ -95,12 +98,13 @@ def main():
     print(f"Loading {MODEL_NAME} on {device}")
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
-        torch_dtype=torch.float32,
+        dtype=torch.float32,
     ).to(device)
-    model.eval()
 
+    model.eval()
     results = []
 
     for test in TESTS:
@@ -110,16 +114,28 @@ def main():
             add_generation_prompt=True,
         )
 
-        inputs = tokenizer(prompt, return_tensors="pt").to(device)
+        inputs = tokenizer(
+            prompt,
+            return_tensors="pt",
+        ).to(device)
 
         with torch.inference_mode():
             output = model.generate(
                 **inputs,
-                max_new_tokens=180,
+                max_new_tokens=400,
                 do_sample=False,
             )
 
+        # Extract only tokens generated after the input prompt.
         new_tokens = output[0, inputs["input_ids"].shape[1]:]
+
+        # Diagnose why generation may have stopped.
+        generated_token_count = len(new_tokens)
+        eos_generated = (
+            generated_token_count > 0
+            and new_tokens[-1].item() == tokenizer.eos_token_id
+        )
+
         answer = tokenizer.decode(
             new_tokens,
             skip_special_tokens=True,
@@ -129,16 +145,22 @@ def main():
             "test": test["name"],
             "model": MODEL_NAME,
             "answer": answer,
+            "generated_tokens": generated_token_count,
+            "eos_generated": eos_generated,
         }
+
         results.append(result)
 
         print(f"\n{'=' * 65}")
         print(f"TEST: {test['name']}")
         print(f"{'=' * 65}")
         print(answer)
+        print(f"\nGenerated tokens: {generated_token_count}")
+        print(f"EOS token generated: {eos_generated}")
 
     output_path = Path("outputs/baseline.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
     output_path.write_text(
         json.dumps(results, indent=2, ensure_ascii=False),
         encoding="utf-8",
