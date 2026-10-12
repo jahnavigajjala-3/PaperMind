@@ -1,0 +1,58 @@
+
+{
+  "version": "1.0",
+  "purpose": "Evaluate research-paper understanding before and after fine-tuning",
+  "grading_scale": {
+    "0": "Incorrect, missing, or unsupported by the paper",
+    "1": "Partially correct but incomplete, vague, or containing minor errors",
+    "2": "Correct, sufficiently complete, and supported by the paper"
+  },
+  "criteria": {
+    "concept_explanation": {
+      "description": "Explains the paper's central technical concept accurately",
+      "checks": [
+        "Technical definitions are correct",
+        "Equations and terminology are accurate",
+        "Does not confuse related concepts"
+      ]
+    },
+    "contribution_extraction": {
+      "description": "Identifies the paper's actual contributions",
+      "checks": [
+        "Distinguishes the proposed method from existing approaches",
+        "Identifies contributions explicitly supported by the paper",
+        "Does not invent contributions"
+      ]
+    },
+    "methodology": {
+      "description": "Describes the experimental methodology accurately",
+      "checks": [
+        "Identifies datasets and experimental setup when provided",
+        "Describes the method without contradicting the paper",
+        "Distinguishes reported details from missing information"
+      ]
+    },
+    "experimental_interpretation": {
+      "description": "Interprets experimental results using the reported evidence",
+      "checks": [
+        "Reports numerical results accurately",
+        "Preserves the direction and magnitude of comparisons",
+        "Does not invent metrics or experimental findings"
+      ]
+    },
+    "limitations": {
+      "description": "Identifies limitations supported by the paper and its evidence",
+      "checks": [
+        "Identifies explicitly stated limitations",
+        "Distinguishes evidence-based limitations from speculation",
+        "Does not claim that unreported experiments were performed"
+      ]
+    }
+  },
+  "evaluation_rules": [
+    "Score each criterion independently from 0 to 2",
+    "Judge answers against the source paper, not fluency or answer length",
+    "Do not award credit for unsupported claims even when they sound plausible",
+    "Use the same rubric for baseline and fine-tuned model outputs"
+  ]
+}
