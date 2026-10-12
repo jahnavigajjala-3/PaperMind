@@ -1,0 +1,59 @@
+
+{
+  "source": {
+    "paper_name": "LiteAttn (fictional evaluation excerpt)",
+    "claims": {
+      "latency_reduction": "25% on the largest dataset",
+      "accuracy_comparison": "1.2 percentage points lower than the standard Transformer baseline",
+      "datasets": 3,
+      "hardware_configurations": 1,
+      "generative_task_results_reported": false,
+      "sequences_longer_than_tested_max_evaluated": false
+    }
+  },
+  "reference_answers": {
+    "concept_explanation": {
+      "expected_points": [
+        "Explain LiteAttn only to the extent supported by the supplied excerpt",
+        "Do not invent the self-attention equation or claim architectural details absent from the excerpt",
+        "Explicitly acknowledge when the excerpt does not provide enough information"
+      ]
+    },
+    "contribution_extraction": {
+      "expected_points": [
+        "Report a 25% latency reduction on the largest dataset",
+        "Report accuracy 1.2 percentage points lower than the standard Transformer baseline",
+        "Do not claim improvements beyond the reported results"
+      ]
+    },
+    "methodology": {
+      "expected_points": [
+        "Three text classification datasets were evaluated",
+        "Experiments used one hardware configuration",
+        "Do not invent dataset names, sample counts, hardware specifications, or training settings"
+      ]
+    },
+    "experimental_interpretation": {
+      "expected_points": [
+        "The largest dataset showed a reported 25% latency reduction",
+        "Accuracy was 1.2 percentage points lower than the standard Transformer baseline",
+        "Do not describe the accuracy as superior",
+        "Do not invent additional performance metrics"
+      ]
+    },
+    "limitations": {
+      "expected_points": [
+        "Results cover three text classification datasets",
+        "Only one hardware configuration was tested",
+        "No generative-task results were reported",
+        "Sequences longer than the tested maximum were not evaluated",
+        "Do not present untested scenarios as proven failures"
+      ]
+    }
+  },
+  "scoring": {
+    "method": "Manual review against the rubric",
+    "score_range_per_question": "0-2 per applicable criterion",
+    "unsupported_claims": "Penalize claims contradicted by the excerpt or unsupported by its evidence"
+  }
+}
