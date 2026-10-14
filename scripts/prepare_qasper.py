@@ -1,4 +1,3 @@
-
 import json
 import re
 from pathlib import Path
@@ -46,15 +45,22 @@ def extract_paragraphs(paper):
 
         for paragraph in group or []:
             if isinstance(paragraph, str) and paragraph.strip():
-                paragraphs.append((section or "Unknown section", paragraph))
+                paragraphs.append(
+                    (section or "Unknown section", paragraph)
+                )
 
     return paragraphs
 
 
 def find_evidence_paragraphs(evidence, paragraphs):
-    """Match evidence to full-text paragraphs using normalized substrings."""
+    """Find all full-text paragraphs matching annotated evidence."""
     matches = []
     seen = set()
+
+    normalized_paragraphs = [
+        (section, paragraph, normalize_text(paragraph))
+        for section, paragraph in paragraphs
+    ]
 
     for passage in evidence:
         normalized_evidence = normalize_text(passage)
@@ -62,18 +68,15 @@ def find_evidence_paragraphs(evidence, paragraphs):
         if not normalized_evidence:
             continue
 
-        for section, paragraph in paragraphs:
-            normalized_paragraph = normalize_text(paragraph)
+        for section, paragraph, normalized_paragraph in normalized_paragraphs:
+            if normalized_evidence not in normalized_paragraph:
+                continue
 
-            if normalized_evidence in normalized_paragraph:
-                key = (section, normalized_paragraph)
+            key = (section, normalized_paragraph)
 
-                if key not in seen:
-                    matches.append((section, paragraph))
-                    seen.add(key)
-
-                # One matching paragraph is sufficient for this passage.
-                break
+            if key not in seen:
+                matches.append((section, paragraph))
+                seen.add(key)
 
     return matches
 
@@ -142,6 +145,8 @@ def main():
 
     written = 0
     skipped = 0
+    skipped_float_evidence = 0
+    skipped_unmatched_evidence = 0
 
     with OUTPUT_PATH.open("w", encoding="utf-8") as file:
         for paper in train:
@@ -160,33 +165,61 @@ def main():
                     skipped += 1
                     continue
 
+                # Conservatively exclude examples with explicit table
+                # or figure evidence that this script cannot include.
+                has_float_evidence = any(
+                    "FLOAT SELECTED:" in passage.upper()
+                    for passage in evidence
+                )
+
+                if has_float_evidence:
+                    skipped += 1
+                    skipped_float_evidence += 1
+                    continue
+
                 matched_paragraphs = find_evidence_paragraphs(
                     evidence, paragraphs
                 )
 
-                # Do not train on examples with unmatched evidence.
+                # Skip examples whose annotated evidence cannot be found
+                # in the paper's extracted full-text paragraphs.
                 if not matched_paragraphs:
                     skipped += 1
+                    skipped_unmatched_evidence += 1
                     continue
 
                 context = build_context(paper, matched_paragraphs)
 
+                if not context:
+                    skipped += 1
+                    continue
+
                 example = {
                     "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {
+                            "role": "system",
+                            "content": SYSTEM_PROMPT,
+                        },
                         {
                             "role": "user",
                             "content": f"{context}\n\nQuestion: {question}",
                         },
-                        {"role": "assistant", "content": answer},
+                        {
+                            "role": "assistant",
+                            "content": answer,
+                        },
                     ]
                 }
 
-                file.write(json.dumps(example, ensure_ascii=False) + "\n")
+                file.write(
+                    json.dumps(example, ensure_ascii=False) + "\n"
+                )
                 written += 1
 
     print(f"Training examples written: {written}")
     print(f"Questions skipped: {skipped}")
+    print(f"Skipped for table/figure evidence: {skipped_float_evidence}")
+    print(f"Skipped for unmatched evidence: {skipped_unmatched_evidence}")
     print(f"Output: {OUTPUT_PATH}")
 
 
